@@ -186,7 +186,7 @@ async def on_message(message):
                 pchannel = g.get_channel(storage[g.id].channel_id)
                 msg = await pchannel.send(content=f'**{message.author.display_name}:** {cont}', files=files)
 
-                to_add = f'Find the pics at {msg.jump_url}'
+                to_add = f'Pics at {msg.jump_url}'
 
                 if cont == '':
                     cont = f'**{message.author.display_name}:** {msg.jump_url}'
