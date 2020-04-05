@@ -1,5 +1,4 @@
 # bot.py
-
 import os
 import discord
 import pickle
@@ -8,10 +7,15 @@ DEFAULT_PICTURES_CHANNEL_NAME = 'pictures'
 
 TOKEN = os.environ['TOKEN']
 
+
+extensions = ["ase",	"art",	"bmp",	"blp",	"cd5",	"cit",	"cpt",	"cr2",	"cut",	"dds",	"dib",	"djvu",	"egt",	"exif",	"gif",	"gpl",	"grf",	"icns",	"ico",	"iff",	"jng",	"jpeg",	"jpg",	"jfif",	"jp2",	"jps",	"lbm",	"max",	"miff",	"mng",	"msp",	"nitf",	"ota",	"pbm",	"pc1",	"pc2",	"pc3",	"pcf",	"pcx",	"pdn",	"pgm",	"PI1",	"PI2",	"PI3",	"pict",	"pct",	"pnm",	"pns",	"ppm",	"psb",	"psd",	"pdd",	"psp",	"px",	"pxm",	"pxr",	"qfx",	"raw",	"rle",	"sct",	"sgi",	"rgb",	"int",	"bw",	"tga",	"tiff",	"tif",	"vtf",	"xbm",	"xcf",	"xpm",	"3dv",	"amf",	"ai",	"awg",	"cgm",	"cdr",	"cmx",	"dxf",	"e2d",	"egt",	"eps",	"fs",	"gbr",	"odg",	"svg",	"stl",	"vrml",	"x3d",	"sxd",	"v2d",	"vnd",	"wmf",	"emf",	"art",	"xar",	"png",	"webp",	"jxr",	"hdp",	"wdp",	"cur",	"ecw",	"iff",	"lbm",	"liff",	"nrrd",	"pam",	"pcx",	"pgf",	"sgi",	"rgb",	"rgba",	"bw",	"int",	"inta",	"sid",	"ras",	"sun",	"tga"]
+
+
 class ServerData:
-    def __init__(self,server_id=0, channel_id=0, mon = []):
+    def __init__(self,server_id=0, channel_id=0, links_channel=0, mon = []):
         self.server_id = server_id
         self.channel_id = channel_id
+        self.links_channel = links_channel
         self.monitor_ch = mon
     
     def __str__(self):
@@ -27,7 +31,9 @@ try:
 except:
     pass
 
+
 client = discord.Client()
+
 
 async def initialSetup(message):
     g = message.guild
@@ -68,7 +74,7 @@ async def initialSetup(message):
 
     pickle.dump(storage, open('serverdata','wb'))
 
-async def changeSetup(message):
+async def setChannel(message):
     g = message.guild
     ms = message.content.split()
 
@@ -76,14 +82,23 @@ async def changeSetup(message):
         await message.channel.send(content='Bot not initialised')
         return
 
-    if len(ms) == 2:
-        name = ms[1]
-        channel = discord.utils.get(g.text_channels, name=name)
+    if len(ms) == 3:
+        name1 = ms[1]
+        channel = discord.utils.get(g.text_channels, name=name1)
         if channel is not None:
             storage[g.id].channel_id = channel.id
             await message.channel.send(content=f'Changed picture channel to {channel.name}')
         else:
-            await message.channel.send(content='Invalid Channel')
+            await message.channel.send(content='Invalid Picture Channel')        
+        
+        name2 = ms[2]
+        channel = discord.utils.get(g.text_channels, name=name2)
+        if channel is not None:
+            storage[g.id].channel_id = channel.id
+            await message.channel.send(content=f'Changed links channel to {channel.name}')
+        else:
+            await message.channel.send(content='Invalid Links Channel')
+
     else:
         await message.channel.send(content='Invalid parameters')
         return
@@ -113,18 +128,16 @@ async def addChannel(message):
     pickle.dump(storage, open('serverdata','wb'))
 
 async def generateHelp(message):
-
     content = """Hello
     Picture Organizer Bot enables you to organize pictures in their discords servers. This bot makes a pics channel with all the pictures.
 
     Commands:
-    pic!init [-c] [picture_channel_name]
+    pic!init [-c]
         Initialises the bot. 
         [-c] creates channel 'pictures' for all the pictures.
-        or mention the channel name
     pic!add channel_name
         Add a monitored channel
-    pic!change [new channel]
+    pic!set picture_channel_name links_channel_name
         To change the pictures channel.
     """
     await message.channel.send(content=content)
@@ -133,7 +146,6 @@ async def generateHelp(message):
 @client.event
 async def on_ready():
     print(f'{client.user} has connected to Discord!')
-
     # guild = discord.utils.find(lambda g: g.name == GUILD, client.guilds)
     # guild = discord.utils.get(client.guilds, name=GUILD)
 
@@ -161,13 +173,12 @@ async def on_message(message):
     if len(ms)>0:
         if ms[0] == 'pic!init':
             await initialSetup(message)
-        elif ms[0] == 'pic!change':
-            await changeSetup(message)
+        elif ms[0] == 'pic!set':
+            await setChannel(message)
         elif ms[0] == 'pic!help':
             await generateHelp(message)
         elif ms[0] == 'pic!add':
             await addChannel(message)
-
 
     if g.id in storage:
         if message.channel.id in storage[g.id].monitor_ch:
@@ -177,24 +188,46 @@ async def on_message(message):
                 print("has pics")
                 
                 files = []
+                pp = True
                 for att in message.attachments:
+                    ex = att.filename.split('.')[-1]
+                    if ex not in extensions:
+                        pp = False
+                        break
                     f = await att.to_file()
                     files.append(f)
-            
-                cont = message.content
 
                 pchannel = g.get_channel(storage[g.id].channel_id)
-                msg = await pchannel.send(content=f'**{message.author.display_name}:** {cont}', files=files)
+                if pp and pchannel is not None:
 
-                to_add = f'Pics at {msg.jump_url}'
+                    cont = message.content
+                    msg = await pchannel.send(content=f'**{message.author.display_name}:** {cont}', files=files)
+                    to_add = f'Pics at {msg.jump_url}'
 
-                if cont == '':
-                    cont = f'**{message.author.display_name}:** {msg.jump_url}'
-                else:
-                    cont = f'**{message.author.display_name}:** {cont} --- {to_add}'
+                    if cont == '':
+                        cont = f'**{message.author.display_name}:** {msg.jump_url}'
+                    else:
+                        cont = f'**{message.author.display_name}:** {cont} --- {to_add}'
 
-                await message.channel.send(content = cont)
-                await message.delete()
-    
+                    await message.channel.send(content = cont)
+                    await message.delete()
+            
+            elif len(message.embeds)>0:
+                print("monitored")
+                print(message.content)
+                print("has links")
+
+                links_channel = g.get_channel(storage[g.id].channel_id)
+                cont = f'**{message.author.display_name}:** '
+
+                first = True
+                for embed in message.embeds
+                    if first:
+                        cont = cont + f'{message.content} --- Find the original message at {message.jump_url}'
+                        msg = await links_channel.send(content=f'**{message.author.display_name}:** {cont}', embed = embed)
+                        first = False
+                    else:
+                        msg = await links_channel.send(content=f'**{message.author.display_name}:** {cont}', embed = embed)
+
 
 client.run(TOKEN)
