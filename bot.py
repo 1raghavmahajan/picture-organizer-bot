@@ -221,13 +221,13 @@ async def on_message(message):
                 cont = f'**{message.author.display_name}:** '
 
                 first = True
-                for embed in message.embeds
+                for embed in message.embeds:
                     if first:
                         cont = cont + f'{message.content} --- Find the original message at {message.jump_url}'
-                        msg = await links_channel.send(content=f'**{message.author.display_name}:** {cont}', embed = embed)
+                        msg = await links_channel.send(content=cont, embed = embed)
                         first = False
                     else:
-                        msg = await links_channel.send(content=f'**{message.author.display_name}:** {cont}', embed = embed)
+                        msg = await links_channel.send(content=cont, embed = embed)
 
 
 client.run(TOKEN)
